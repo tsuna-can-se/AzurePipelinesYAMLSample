@@ -1,0 +1,66 @@
+﻿trigger: none
+
+pool:
+  vmImage: 'windows-latest'
+
+variables:
+  solution: '**/Samples.sln'
+  windowsServiceProject: '**/Samples.WinService.csproj'
+  buildPlatform: 'AnyCPU'
+  buildConfiguration: 'Release'
+
+stages:
+  - stage: 
+    jobs:
+      - job:
+        steps:
+          - task: NuGetToolInstaller@1
+            inputs:
+              versionSpec: 
+              checkLatest: true
+          - task: NuGetCommand@2
+            inputs:
+              restoreSolution: '$(solution)'
+          - task: VSBuild@1
+            inputs:
+              solution: '$(windowsServiceProject)'
+              platform: '$(buildPlatform)'
+              configuration: '$(buildConfiguration)'
+              msbuildArgs: '/p:OutPutPath="$(Build.Artifactstagingdirectory)/WinService"'
+          - task: PublishBuildArtifacts@1
+            inputs:
+              PathtoPublish: '$(Build.Artifactstagingdirectory)/WinService'
+              ArtifactName: 'WinService'
+              publishLocation: 'Container'
+
+  - stage: 
+    variables:
+      winServiceModulePath: '<Windows サービスの配置先>'
+      winServiceName: '<Windows サービスの名前>'
+    jobs:
+      - deployment: 
+        environment:
+          name: '<リリース先 Environment の名前>'
+          resourceType: VirtualMachine
+        strategy:
+          runOnce:
+            preDeploy:
+              steps:
+              - download: none
+              - template: stop-windows-service-template.yml
+                parameters:
+                  windowsServiceName: '$(winServiceName)'
+            deploy:
+              steps:
+              - download: none
+              - task: DownloadPipelineArtifact@2
+                inputs:
+                  buildType: 'current'
+                  artifactName: 'WinService'
+                  targetPath: '$(winServiceModulePath)'
+            on:
+              success:
+                steps:
+                - template: start-windows-service-template.yml
+                  parameters:
+                    windowsServiceName: '$(winServiceName)'

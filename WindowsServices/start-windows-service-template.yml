@@ -1,0 +1,64 @@
+﻿parameters:
+- name: windowsServiceName
+  type: string
+  default: ''
+- name: timeoutSec
+  type: number
+  default: '5'
+
+steps:
+  - task: PowerShell@2
+    displayName: 'パラメーターチェック'
+    inputs:
+      targetType: 'inline'
+      script: |
+        If ( "${{ parameters.windowsServiceName }}" -eq "" ) {
+            Write-Host "##vso[task.logissue type=error;]テンプレートパラメーター \"windowsServiceName\" が指定されていません。"
+            Write-Host "##vso[task.complete result=Failed;]"
+            exit
+        }
+  - task: PowerShell@2
+    displayName: '${{ parameters.windowsServiceName }} の起動'
+    inputs:
+      targetType: 'inline'
+      script: |
+        $SvcName = '${{ parameters.windowsServiceName }}'
+        $Timeout = New-TimeSpan -Seconds ${{ parameters.timeoutSec }}
+        $SvcCtrl = Get-Service | Where-Object { $_.Name -eq $SvcName }
+        If ($SvcCtrl -eq $null) {
+            Write-Host "##vso[task.logissue type=error;]"$SvcName" という名前の Windows サービスが見つかりません。"
+            Write-Host "##vso[task.complete result=Failed;]"
+            exit
+        }
+
+        Write-Host "サービス (" $SvcCtrl.Name "|" $SvcCtrl.DisplayName ") が見つかりました ( ステータス:" $SvcCtrl.Status ") 。"
+        try {
+            Write-Host "サービス (" $SvcCtrl.Name "|" $SvcCtrl.DisplayName ") を起動します ( ステータス:" $SvcCtrl.Status ") 。"
+            $SvcCtrl.Start()
+        } catch {
+            Write-Host "##vso[task.logissue type=warning;]"$SvcName" の起動に失敗しました。"
+            Write-Host $_.Exception.ToString()
+        }
+
+        $SvcCtrl.Refresh()
+        If ($SvcCtrl.Status -eq "StartPending") {
+            Write-Host "サービス (" $SvcCtrl.Name "|" $SvcCtrl.DisplayName ") が起動するのを待機しています ( ステータス:" $SvcCtrl.Status ") 。"
+            try {
+                $SvcCtrl.WaitForStatus("Running", $Timeout)
+            } catch {
+                Write-Host "##vso[task.logissue type=warning;]"$SvcName" が起動するのを待機しましたが、タイムアウトしました。"
+                Write-Host $_.Exception.ToString()
+            }
+            $SvcCtrl.Refresh()
+        }
+                                
+        If ($SvcCtrl.Status -eq "Running") {
+            Write-Host "サービス (" $SvcCtrl.Name "|" $SvcCtrl.DisplayName ") が起動しました ( ステータス:" $SvcCtrl.Status ") 。"
+            exit
+        }
+        Else {
+            Write-Host "##vso[task.logissue type=error;]"$SvcName" が起動しませんでした。"
+            Write-Host "サービス (" $SvcCtrl.Name "|" $SvcCtrl.DisplayName ") が起動しませんでした ( ステータス:" $SvcCtrl.Status ") 。"
+            Write-Host "##vso[task.complete result=Failed;]"
+            exit
+        }
