@@ -1,2 +1,15 @@
-# AzurePipelinesYAMLSample
+## このリポジトリについて
 Azure Pipelines で使用可能な YAML のサンプルを公開するリポジトリです。
+ここで公開するサンプルは、以下のブログで紹介する YAML の原本です。
+
+https://tsuna-can.hateblo.jp/
+
+解説はすべてブログにありますので、そちらを参照してください。
+
+## サンプルの概要
+
+|ディレクトリ                        |概要|
+|-----------------------------------|----|
+|[WindowsServices](/WindowsServices)|Windows サービスのアプリケーションを配置する YAML のサンプルです。|
+
+
