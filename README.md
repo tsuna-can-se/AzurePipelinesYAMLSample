@@ -10,6 +10,5 @@ https://tsuna-can.hateblo.jp/
 
 |ディレクトリ                        |概要|
 |-----------------------------------|----|
+|[AppConfigTransform](/AppConfigTransform)|App.config に対して XML 変換を適用してビルドする YAML テンプレートのサンプルです。|
 |[WindowsServices](/WindowsServices)|Windows サービスのアプリケーションを配置する YAML のサンプルです。|
-
-

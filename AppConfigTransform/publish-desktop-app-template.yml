@@ -1,0 +1,45 @@
+﻿parameters:
+- name: projectRootDirectory
+  type: string
+  default: ''
+- name: projectFileName
+  type: string
+  default: '*.csproj'
+- name: outputPath
+  type: string
+  default: ''
+- name: buildPlatform
+  type: string
+  default: 'AnyCPU'
+- name: buildConfiguration
+  type: string
+  default: 'Release'
+
+steps:
+  - task: PowerShell@2
+    displayName: 'パラメーターチェック'
+    inputs:
+      targetType: 'inline'
+      script: |
+        If ( "${{ parameters.projectRootDirectory }}" -eq "" ) {
+            Write-Host "##vso[task.logissue type=error;]テンプレートパラメーター projectRootDirectory が指定されていません。"
+            Write-Host "##vso[task.complete result=Failed;]"
+            exit
+        }
+        If ( "${{ parameters.outputPath }}" -eq "" ) {
+            Write-Host "##vso[task.logissue type=error;]テンプレートパラメーター outputPath が指定されていません。"
+            Write-Host "##vso[task.complete result=Failed;]"
+            exit
+        }
+  - task: FileTransform@2
+    displayName: 'App.config 変換 - ${{ parameters.projectRootDirectory }}'
+    inputs:
+      folderPath: '${{ parameters.projectRootDirectory }}'
+      xmlTransformationRules: '-transform "**\App.${{ parameters.buildConfiguration }}.config" -xml "**\App.config"'
+  - task: VSBuild@1
+    displayName: 'アプリケーションのビルド - ${{ parameters.projectRootDirectory }}'
+    inputs:
+      solution: '${{ parameters.projectRootDirectory }}/**/${{ parameters.projectFileName }}'
+      msbuildArgs: '/p:OutPutPath="${{ parameters.outputPath }}"'
+      platform: '${{ parameters.buildPlatform }}'
+      configuration: '${{ parameters.buildConfiguration }}'

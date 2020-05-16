@@ -1,0 +1,18 @@
+﻿trigger: none
+
+pool:
+  vmImage: 'windows-latest'
+
+variables:
+  PublishDirectory: '$(Build.Artifactstagingdirectory)/<発行先のディレクトリ>'
+
+steps:
+- template: 'publish-desktop-app-template.yml'
+  parameters:
+    projectRootDirectory: '$(Build.SourcesDirectory)/<デスクトップアプリケーションのプロジェクトファイルが配置されているルートディレクトリ>'
+    outputPath: '$(PublishDirectory)'
+- task: PublishPipelineArtifact@1
+  inputs:
+    targetPath: '$(PublishDirectory)'
+    artifact: '<アーティファクトの名前（プロジェクト名とか、アプリケーションの名前とかがよい）>'
+    publishLocation: 'pipeline'
