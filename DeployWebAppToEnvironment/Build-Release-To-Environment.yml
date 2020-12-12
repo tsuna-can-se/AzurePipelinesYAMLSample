@@ -1,0 +1,107 @@
+trigger: none
+
+pool:
+  vmImage: 'windows-latest'
+
+variables:
+  buildConfiguration: 'Release'
+  TargetSolution: '$(Build.SourcesDirectory)\Demo1210\Demo1210.sln'
+  WebProject: '$(Build.SourcesDirectory)\Demo1210/src/Demo1210.Web/Demo1210.Web.csproj'
+  webAppArtifactName: 'web-app'
+
+stages:
+  - stage: ApplicationPackagingStage
+    displayName: 'アプリケーションのパッケージング'
+    jobs:
+      - job: ApplicationPackagingJob
+        displayName: 'アプリケーションのパッケージング'
+        steps:
+        - task: DotNetCoreCLI@2
+          displayName: 'NuGet パッケージの更新'
+          inputs:
+            command: 'restore'
+            projects: '$(TargetSolution)'
+            feedsToUse: 'select'
+        - task: DotNetCoreCLI@2
+          displayName: 'アプリケーションのローカルディレクトリへの発行'
+          inputs:
+            command: 'publish'
+            publishWebProjects: false
+            projects: '$(WebProject)'
+            arguments: '--configuration $(buildConfiguration) --self-contained true --runtime win-x64 --output $(build.artifactstagingdirectory)\web'
+        - task: PublishPipelineArtifact@1
+          displayName: 'パッケージのアップロード'
+          inputs:
+            targetPath: '$(build.artifactstagingdirectory)\web'
+            artifact: '$(webAppArtifactName)'
+            publishLocation: 'pipeline'
+
+  - stage: DeployToDevelopmentStage
+    displayName: '開発/テスト環境へのリリース'
+    dependsOn: 'ApplicationPackagingStage'
+    condition: succeeded('ApplicationPackagingStage')
+    variables:
+      modulePath: $(Pipeline.Workspace)/ReleaseModules
+    jobs:
+      - deployment: 'DeployToDevelopment'
+        displayName: '開発/テスト環境へのリリース'
+        environment:
+          name: Development
+          resourceType: VirtualMachine
+        strategy:
+          runOnce:
+            preDeploy:
+              steps:
+              - download: none
+              - task: DownloadPipelineArtifact@2
+                displayName: 'Web アプリケーションのダウンロード(開発/テスト環境)'
+                inputs:
+                  buildType: 'current'
+                  artifactName: '$(webAppArtifactName)'
+                  targetPath: '$(modulePath)/dev/web'
+            deploy:
+              steps:
+              - download: none
+              - task: IISWebAppDeploymentOnMachineGroup@0
+                displayName: 'Webアプリケーションのデプロイ(開発/テスト環境)'
+                inputs:
+                  WebSiteName: 'Default Web Site'
+                  VirtualApplication: 'Demo1210'
+                  Package: '$(modulePath)/dev/web/*.zip'
+                  RemoveAdditionalFilesFlag: true
+                  TakeAppOfflineFlag: true
+
+  - stage: DeployToProductionStage
+    displayName: '本番環境へのリリース'
+    dependsOn: 'DeployToDevelopmentStage'
+    condition: succeeded('DeployToDevelopmentStage')
+    variables:
+      modulePath: $(Pipeline.Workspace)/ReleaseModules
+    jobs:
+      - deployment: 'DeployToProduction'
+        displayName: '本番環境へのリリース'
+        environment:
+          name: Production
+          resourceType: VirtualMachine
+        strategy:
+          runOnce:
+            preDeploy:
+              steps:
+              - download: none
+              - task: DownloadPipelineArtifact@2
+                displayName: 'Web アプリケーションのダウンロード(本番環境)'
+                inputs:
+                  buildType: 'current'
+                  artifactName: '$(webAppArtifactName)'
+                  targetPath: '$(modulePath)/prod/web'
+            deploy:
+              steps:
+              - download: none
+              - task: IISWebAppDeploymentOnMachineGroup@0
+                displayName: 'Webアプリケーションのデプロイ(本番環境)'
+                inputs:
+                  WebSiteName: 'Default Web Site'
+                  VirtualApplication: 'Demo1210'
+                  Package: '$(modulePath)/prod/web/*.zip'
+                  RemoveAdditionalFilesFlag: true
+                  TakeAppOfflineFlag: true
