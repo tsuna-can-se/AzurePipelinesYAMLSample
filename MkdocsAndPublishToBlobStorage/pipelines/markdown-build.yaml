@@ -1,0 +1,30 @@
+trigger: none
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+  - task: PowerShell@2
+    displayName: "MkDocs のインストールと実行"
+    inputs:
+      targetType: 'inline'
+      script: |
+        python -m pip install wheel
+        python -m pip install mkdocs
+        python -m pip install mkdocs-material
+        python -m pip install mkdocs-minify-plugin
+        python -m mkdocs build
+  - task: AzureCLI@2
+    displayName: '静的Webサイトの更新'
+    inputs:
+      azureSubscription: '<サービスコネクションの接続名>'
+      scriptType: 'pscore'
+      scriptLocation: 'inlineScript'
+      inlineScript: |
+        Param($StorageAccountName, $ContainerName, $UploadDirectory)
+        az storage blob delete-batch --source $ContainerName --account-name $StorageAccountName
+        az storage blob upload-batch --destination $ContainerName --source $UploadDirectory --account-name $StorageAccountName
+      arguments: 
+        -StorageAccountName '<ストレージアカウントの名前>'
+        -ContainerName '$web'
+        -UploadDirectory '$(Build.SourcesDirectory)/site'

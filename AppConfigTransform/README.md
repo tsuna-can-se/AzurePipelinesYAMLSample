@@ -1,4 +1,5 @@
-## このサンプルについて
+# このサンプルについて
+
 詳細は以下のブログをご覧ください。
 
 [ツナ缶雑記 ｜ App.config に対して XML 変換を行う Azure Pipelines の YAML テンプレートを作る](https://tsuna-can.hateblo.jp/entry/2020/04/22/190243)
