@@ -13,5 +13,6 @@ Azure Pipelines で使用可能な YAML のサンプルを公開するリポジ�
 |---------------------------------------------------------------|------------------------------------------------------------------------------------------------------------|
 |[AppConfigTransform](/AppConfigTransform)                      |App.config に対して XML 変換を適用してビルドする YAML テンプレートのサンプルです。                          |
 |[DeployWebAppToEnvironment](/DeployWebAppToEnvironment)        |Web アプリケーションを Environment に対して配置する YAML のサンプルです。                                   |
+|[GitHubSuperLinterSample](/GitHubSuperLinterSample)            |GitHub Super-Linter を実行するサンプルです。このサンプルでは Markdown と YAML の Linter を実行します。      |
 |[MkdocsAndPublishToBlobStorage](/MkdocsAndPublishToBlobStorage)|Mkdocs を使って静的 Web サイトを作成し、 Storage Account の静的 Web サイトに発行する YAML んおサンプルです。|
 |[WindowsServices](/WindowsServices)                            |Windows サービスのアプリケーションを配置する YAML のサンプルです。                                          |

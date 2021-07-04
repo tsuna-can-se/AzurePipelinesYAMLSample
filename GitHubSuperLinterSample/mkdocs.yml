@@ -1,0 +1,5 @@
+site_name: My Docs
+site_url: https://<ストレージアカウントの名前>.<リージョンコード>.web.core.windows.net/
+theme:
+  name: material
+  language: ja

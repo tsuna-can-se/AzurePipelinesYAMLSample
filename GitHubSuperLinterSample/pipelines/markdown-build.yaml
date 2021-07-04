@@ -1,0 +1,29 @@
+trigger: none
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+  - task: Bash@3
+    displayName: 'GitHub Super-Linter によるスキャン'
+    inputs:
+      targetType: 'inline'
+      script: |
+        docker pull github/super-linter:latest
+        docker run -e RUN_LOCAL=true -v $(System.DefaultWorkingDirectory):/tmp/lint github/super-linter
+  - task: PowerShell@2
+    displayName: "MkDocs のインストールと実行"
+    inputs:
+      targetType: 'inline'
+      script: |
+        python -m pip install wheel
+        python -m pip install mkdocs
+        python -m pip install mkdocs-material
+        python -m pip install mkdocs-minify-plugin
+        python -m mkdocs build
+  - task: PublishPipelineArtifact@1
+    displayName: 'ビルドしたファイルのアップロード'
+    inputs:
+      targetPath: '$(Build.SourcesDirectory)/site'
+      artifact: 'docs'
+      publishLocation: 'pipeline'
