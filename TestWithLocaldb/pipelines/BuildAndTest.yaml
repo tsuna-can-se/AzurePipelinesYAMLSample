@@ -1,0 +1,53 @@
+﻿trigger: none
+
+pool:
+  vmImage: 'windows-2022'
+
+variables:
+  BuildConfiguration: 'Release'
+  TargetSolution: '$(Build.SourcesDirectory)/TestWithLocaldb/TestWithLocaldb.sln'
+  TestProjects: '$(Build.SourcesDirectory)/TestWithLocaldb/tests/TestWithLocaldb.DataAccess.Test/TestWithLocaldb.DataAccess.Test.csproj'
+
+stages:
+  - stage: ApplicationBuildStage
+    displayName: 'アプリケーションのビルド'
+    jobs:
+      - job: ApplicationBuildJob
+        displayName: 'アプリケーションのビルド'
+        steps:
+        - task: CmdLine@2
+          displayName: 'SQL Server LocalDB の起動'
+          inputs:
+            script: |
+              sqllocaldb start mssqllocaldb
+        - task: DotNetCoreCLI@2
+          displayName: 'NuGet パッケージの復元'
+          inputs:
+            command: 'restore'
+            projects: '$(TargetSolution)'
+            feedsToUse: 'select'
+        - task: DotNetCoreCLI@2
+          displayName: 'アプリケーションのビルド'
+          inputs:
+            command: 'build'
+            projects: '$(TargetSolution)'
+            arguments: '--configuration $(BuildConfiguration)'
+        - task: DotNetCoreCLI@2
+          displayName: 'dotnet-ef のインストール'
+          inputs:
+            command: 'custom'
+            custom: 'tool'
+            arguments: 'install --global dotnet-ef'
+        - task: DotNetCoreCLI@2
+          displayName: 'テスト用データベースの構築'
+          inputs:
+            command: 'custom'
+            custom: 'ef'
+            arguments: 'database update'
+            workingDirectory: '$(Build.SourcesDirectory)/TestWithLocaldb/src/TestWithLocaldb.DataAccess/'
+        - task: DotNetCoreCLI@2
+          displayName: '単体テストの実行'
+          inputs:
+            command: 'test'
+            projects: '$(TestProjects)'
+            arguments: '--configuration $(BuildConfiguration) --collect "XPlat Code coverage" -- RunConfiguration.DisableAppDomain=true'  
